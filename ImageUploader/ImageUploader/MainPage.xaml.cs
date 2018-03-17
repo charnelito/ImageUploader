@@ -1,7 +1,9 @@
-﻿using Plugin.Media;
+﻿using Microsoft.WindowsAzure.Storage;
+using Plugin.Media;
 using Plugin.Media.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,7 +41,23 @@ namespace ImageUploader
             }
 
             selectedImage.Source = ImageSource.FromStream(() => selectedImageFile.GetStream());
+
+            UploadImage(selectedImageFile.GetStream());
         }
 
+        private async void UploadImage(Stream stream)
+        {
+            var account = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=myimagestores;AccountKey=G9YHPYvMhSmQfxLr1Cvl2IyXB2EZrAzIH0isnUWqxposmBDBtPPDNG92OzwXEo9hNcJekp7rSl8vkMLJYnhuZQ==;EndpointSuffix=core.windows.net");
+            var client = account.CreateCloudBlobClient();
+            var container = client.GetContainerReference("imagecontainer");
+            await container.CreateIfNotExistsAsync();
+
+            var name = Guid.NewGuid().ToString();
+            var blockBlob = container.GetBlockBlobReference($"{name}.jpg");
+            await blockBlob.UploadFromStreamAsync(stream);
+
+            string url = blockBlob.Uri.OriginalString;
+
+        }
     }
 }
